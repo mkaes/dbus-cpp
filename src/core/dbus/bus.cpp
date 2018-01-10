@@ -355,31 +355,30 @@ void Bus::run()
     d->executor->run();
 }
 
+static const DBusObjectPathVTable global_vtable =
+{
+	VTable::unregister_object_path,
+	VTable::on_new_message,
+	nullptr,
+	nullptr,
+	nullptr,
+	nullptr
+};
+
 void Bus::register_object_for_path(
         const types::ObjectPath& path,
         const std::shared_ptr<Object>& object)
 {
-    auto vtable = new DBusObjectPathVTable
-    {
-            VTable::unregister_object_path,
-            VTable::on_new_message,
-            nullptr,
-            nullptr,
-            nullptr,
-            nullptr
-    };
-
     Error e;
     auto result = dbus_connection_try_register_object_path(
                 d->connection.get(),
                 path.as_string().c_str(),
-                vtable,
+                &global_vtable,
                 new VTable{object},
                 std::addressof(e.raw()));
 
     if (!result || e)
     {
-        delete vtable;
         throw std::runtime_error(e.print());
     }
 }
